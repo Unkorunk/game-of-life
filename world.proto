@@ -1,5 +1,7 @@
 syntax = "proto2";
 
+package proto;
+
 message Player {
     required uint32 x = 1;
     required uint32 y = 2;

@@ -9,6 +9,10 @@
 
 using boost::asio::ip::tcp;
 
+using namespace proto;
+
+const int default_port = 5000;
+
 class session
     
 {
@@ -64,9 +68,6 @@ private:
 
     void do_write()
     {
-        
-
-
         for (const std::unique_ptr<session> &player_session : *g_players) {
             if (player_session->is_disconnected) continue;
             boost::asio::async_write(player_session->socket_,
@@ -81,7 +82,6 @@ private:
                     }
                 });
         }
-        
     }
 
     const std::vector<std::unique_ptr<session>>* g_players;
@@ -91,7 +91,6 @@ private:
     size_t player_id = 0;
 
     bool is_disconnected = false;
-
 
     tcp::socket socket_;
     std::string data_;
@@ -105,8 +104,6 @@ public:
     {
         do_accept();
     }
-
-    
 
 private:
     void do_accept() {
@@ -139,7 +136,6 @@ private:
 
 int main(int argc, char* argv[])
 {
-    const int default_port = 5000;
     int port = default_port;
     try
     {

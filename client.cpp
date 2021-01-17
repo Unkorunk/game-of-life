@@ -2,6 +2,7 @@
 #include <vector>
 #include <random>
 #include <boost/asio.hpp>
+
 #include "world.pb.h"
 
 #include "Map.h"
@@ -34,7 +35,7 @@ void do_read(tcp::socket &socket)
             if (!ec)
             {
                 other_players.clear();
-                proto::World world;
+                generated_files::World world;
                 world.ParseFromArray(buff.data(), length);
                 for (auto player : world.players()) {
                     if (!player.is_player()) other_players.emplace_back(player.x(), player.y());
@@ -47,9 +48,9 @@ void do_read(tcp::socket &socket)
         });
 }
 
-class GameOfLifeMapController final : game_of_life::MapController<bool> {
+class GameOfLifeMapController final : cellular_automaton::MapController<bool> {
 public:
-	explicit GameOfLifeMapController(game_of_life::Map<bool>& map)
+	explicit GameOfLifeMapController(cellular_automaton::Map<bool>& map)
 		: MapController<bool>(map), buff_map_(map.GetWidth(), map.GetHeight()) {}
 
 	void Update() override {
@@ -77,13 +78,13 @@ public:
 	}
 
 private:
-	game_of_life::Map<bool> buff_map_;
+    cellular_automaton::Map<bool> buff_map_;
 
 };
 
-class GameOfLifeMapUtilities final : game_of_life::MapUtilities<bool> {
+class GameOfLifeMapUtilities final : cellular_automaton::MapUtilities<bool> {
 public:
-	GameOfLifeMapUtilities(game_of_life::Map<bool>& map, game_of_life::MapRenderer<bool>& map_renderer)
+	GameOfLifeMapUtilities(cellular_automaton::Map<bool>& map, cellular_automaton::MapRenderer<bool>& map_renderer)
 		: MapUtilities<bool>(map, map_renderer), dist_(0, 1) {}
 
 	void Update() override {
@@ -114,7 +115,7 @@ private:
 
 int main()
 {
-    game_of_life::Map<bool> map(width, height);
+    cellular_automaton::Map<bool> map(width, height);
 	GameOfLifeMapController map_controller(map);
 
     boost::asio::io_context io_context;
@@ -127,7 +128,7 @@ int main()
     
     sf::RenderWindow window(sf::VideoMode::getFullscreenModes()[0], "Game Of Life");
 
-    game_of_life::MapRenderer<bool> map_renderer(window, map);
+    cellular_automaton::MapRenderer<bool> map_renderer(window, map);
 	map_renderer.MapValueToExistence([](const bool& it) {
 		return it;
 	});
@@ -135,17 +136,17 @@ int main()
 		return sf::Color(255, 255, 255);
 	});
 	
-    game_of_life::Camera camera(window);
+    cellular_automaton::Camera camera(window);
 
-	auto cell_size = game_of_life::MapRenderer<bool>::kCellSize;
-	auto cell_offset = game_of_life::MapRenderer<bool>::kCellOffset;
+	auto cell_size = cellular_automaton::MapRenderer<bool>::kCellSize;
+	auto cell_offset = cellular_automaton::MapRenderer<bool>::kCellOffset;
 	
     camera.GetViewEditable().setCenter(sf::Vector2f(width * (cell_size.x + cell_offset.x) + cell_offset.x, height * (cell_size.y + cell_offset.y) + cell_offset.y) / 2.f);
 
     sf::Clock clock;
     sf::Clock fps_clock;
 	
-	game_of_life::Player player(map);
+	cellular_automaton::Player player(map);
 
     GameOfLifeMapUtilities map_utilities(map, map_renderer);
 	

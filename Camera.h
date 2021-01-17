@@ -5,7 +5,7 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Joystick.hpp>
 
-namespace game_of_life {
+namespace cellular_automaton {
 	class Camera {
 	public:
 		static const float kSpeed;

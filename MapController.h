@@ -2,7 +2,7 @@
 
 #include "Map.h"
 
-namespace game_of_life {
+namespace cellular_automaton {
 	template <typename T>
 	class MapController {
 	public:

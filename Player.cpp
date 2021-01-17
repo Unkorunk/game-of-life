@@ -1,6 +1,6 @@
 #include "Player.h"
 
-namespace game_of_life {
+namespace cellular_automaton {
 	const float Player::kSpeed = 1.f / 8.f;
 
 	Player::Player(map_type& map) : map_(map), id_(0), position_() { }
@@ -42,8 +42,8 @@ namespace game_of_life {
 		}
 	}
 
-	proto::Player Player::GetProto() const {
-		proto::Player result;
+	generated_files::Player Player::GetProto() const {
+		generated_files::Player result;
 
 		result.set_x(position_.x);
 		result.set_y(position_.y);

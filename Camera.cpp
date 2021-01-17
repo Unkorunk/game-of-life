@@ -1,6 +1,6 @@
 #include "Camera.h"
 
-namespace game_of_life {
+namespace cellular_automaton {
     const float Camera::kSpeed = 300;
     const float Camera::kZoomSpeed = 1.001f;
     const float Camera::kZoomDefault = 0.45f;

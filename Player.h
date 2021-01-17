@@ -7,7 +7,7 @@
 
 #include "Map.h"
 
-namespace game_of_life {
+namespace cellular_automaton {
 	class Player {
 		using map_type = Map<bool>;
 	public:
@@ -17,7 +17,7 @@ namespace game_of_life {
 
 		void Update();
 
-		proto::Player GetProto() const;
+		generated_files::Player GetProto() const;
 
 		int GetX() const;
 		int GetY() const;

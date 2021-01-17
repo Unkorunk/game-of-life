@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package proto;
+package generated_files;
 
 message Player {
     required uint32 x = 1;

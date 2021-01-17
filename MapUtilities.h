@@ -4,7 +4,7 @@
 #include "Map.h"
 #include "MapRenderer.h"
 
-namespace game_of_life {
+namespace cellular_automaton {
 	template <typename T>
 	class MapUtilities {
 	public:

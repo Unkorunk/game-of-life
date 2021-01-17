@@ -3,7 +3,7 @@
 #include <vector>
 #include <functional>
 
-namespace game_of_life {
+namespace cellular_automaton {
 	template <typename T>
 	class Map {
 	public:

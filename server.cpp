@@ -9,7 +9,7 @@
 
 using boost::asio::ip::tcp;
 
-using namespace proto;
+using namespace generated_files;
 
 const int default_port = 5000;
 

@@ -6,19 +6,15 @@
 
 #include "Map.h"
 #include "MapController.h"
+#include "MapRenderer.h"
 #include "Camera.h"
 #include "Player.h"
 
 using boost::asio::ip::tcp;
 
-const sf::Vector2f cell_offset(0.5f, 0.5f);
-const sf::Vector2f cell_size (4.f,4.f);
 const size_t width = 100;
 const size_t height = 100;
 const float fps = 1.f/8.f;
-const sf::Color background_color(50, 50, 50);
-const sf::Color cell_color(255, 255, 255);
-const sf::Color grid_color(150, 150, 150);
 const sf::Color builder_color(255, 0, 0, 100);
 const sf::Color other_builder_color(0, 255, 0, 100);
 const char* default_port = "5000";
@@ -69,7 +65,18 @@ int main()
     
     sf::RenderWindow window(sf::VideoMode::getFullscreenModes()[0], "Game Of Life");
 
+    game_of_life::MapRenderer<bool> map_renderer(window, map);
+	map_renderer.MapValueToExistence([](const bool& it) {
+		return it;
+	});
+	map_renderer.MapValueToColor([](const bool& it) {
+		return sf::Color(255, 255, 255);
+	});
+	
     game_of_life::Camera camera(window);
+
+	auto cell_size = game_of_life::MapRenderer<bool>::kCellSize;
+	auto cell_offset = game_of_life::MapRenderer<bool>::kCellOffset;
 	
     camera.GetViewEditable().setCenter(sf::Vector2f(width * (cell_size.x + cell_offset.x) + cell_offset.x, height * (cell_size.y + cell_offset.y) + cell_offset.y) / 2.f);
 
@@ -78,7 +85,6 @@ int main()
 	
 	game_of_life::Player player(map);
     
-    bool grid_visible = true;
     bool game_paused = true;
     bool key_g_is_released = true;
     bool key_p_is_released = true;
@@ -111,7 +117,7 @@ int main()
 
         if (key_g_is_released) {
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-                grid_visible = !grid_visible;
+            	map_renderer.SetGridVisible(!map_renderer.GetGridVisible());
                 key_g_is_released = false;
             }
         }
@@ -154,41 +160,13 @@ int main()
             key_r_is_released = true;
         }
 
-        window.clear(background_color);
+        map_renderer.Update();
 
         sf::RectangleShape builder_rect(cell_size);
         builder_rect.setFillColor(builder_color);
         sf::RectangleShape other_builder_rect(cell_size);
         other_builder_rect.setFillColor(other_builder_color);
-        sf::RectangleShape cell_rect(cell_size);
-        cell_rect.setFillColor(cell_color);
-        sf::RectangleShape v_rect(sf::Vector2f(cell_offset.x, height * (cell_size.y + cell_offset.y) + cell_offset.y));
-        v_rect.setFillColor(grid_color);
-        sf::RectangleShape h_rect(sf::Vector2f(width * (cell_size.x + cell_offset.x) + cell_offset.x, cell_offset.y));
-        h_rect.setFillColor(grid_color);
-
-        if (grid_visible) {
-            for (size_t i = 0; i < width + 1; i++) {
-                v_rect.setPosition(i * (cell_size.x + cell_offset.x), 0.f);
-                window.draw(v_rect);
-            }
-
-            for (size_t i = 0; i < height + 1; i++) {
-                h_rect.setPosition(0.f, i * (cell_size.y + cell_offset.y));
-                window.draw(h_rect);
-            }
-        }
-        
-
-        for (size_t i = 0; i < map.GetHeight(); i++) {
-            for (size_t j = 0; j < map.GetWidth(); j++) {
-                if (map.Get(i, j)){
-                    cell_rect.setPosition(j * (cell_size.x + cell_offset.x) + cell_offset.x, i * (cell_size.y + cell_offset.y) + cell_offset.y);
-                    window.draw(cell_rect);
-                }
-            }
-        }
-        
+    	
         for (auto builder_position : other_players) {
             other_builder_rect.setPosition(builder_position.x * (cell_size.x + cell_offset.x) + cell_offset.x,
                 builder_position.y * (cell_size.y + cell_offset.y) + cell_offset.y);

@@ -3,16 +3,16 @@
 #include "Map.h"
 
 namespace game_of_life {
+	template <typename T>
 	class MapController {
-		using map_type = Map<bool>;
 	public:
-		explicit MapController(map_type& map);
-		
-		void Update();
-	
-	private:
-		map_type& map_;
-		map_type buff_map_;
-		
+		explicit MapController(Map<T>& map) : map_(map) {}
+		virtual ~MapController() = default;
+
+		virtual void Update() = 0;
+
+	protected:
+		Map<T>& map_;
+
 	};
 }

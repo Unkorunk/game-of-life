@@ -12,8 +12,9 @@ add_executable(game-of-life-client
     Player.cpp Player.h
     Camera.cpp Camera.h
     Map.h
-    MapController.cpp MapController.h
+    MapController.h
     MapRenderer.h
+    MapUtilities.h
 )
 target_link_libraries(game-of-life-client ${CONAN_LIBS})
 

@@ -7,6 +7,7 @@
 #include "Map.h"
 #include "MapController.h"
 #include "MapRenderer.h"
+#include "MapUtilities.h"
 #include "Camera.h"
 #include "Player.h"
 
@@ -21,9 +22,6 @@ const char* default_port = "5000";
 const char* default_host = "localhost";
 
 using namespace std;
-
-uniform_int_distribution<size_t> dist(0,1);
-random_device rd;
 
 std::string buff(1024,' ');
 std::vector<sf::Vector2i> other_players;
@@ -49,11 +47,75 @@ void do_read(tcp::socket &socket)
         });
 }
 
+class GameOfLifeMapController final : game_of_life::MapController<bool> {
+public:
+	explicit GameOfLifeMapController(game_of_life::Map<bool>& map)
+		: MapController<bool>(map), buff_map_(map.GetWidth(), map.GetHeight()) {}
+
+	void Update() override {
+		for (size_t i = 0; i < map_.GetHeight(); i++) {
+			for (size_t j = 0; j < map_.GetWidth(); j++) {
+				size_t count = map_.MoorNeighborhood(i, j, 1, [](const bool& it) {
+					return it;
+				});
+
+				buff_map_.Set(i, j, map_.Get(i, j));
+
+				if (map_.Get(i, j)) {
+					if (count < 2 || count > 3) {
+						buff_map_.Set(i, j, false);
+					}
+				} else {
+					if (count == 3) {
+						buff_map_.Set(i, j, true);
+					}
+				}
+			}
+		}
+
+		map_.Swap(buff_map_);
+	}
+
+private:
+	game_of_life::Map<bool> buff_map_;
+
+};
+
+class GameOfLifeMapUtilities final : game_of_life::MapUtilities<bool> {
+public:
+	GameOfLifeMapUtilities(game_of_life::Map<bool>& map, game_of_life::MapRenderer<bool>& map_renderer)
+		: MapUtilities<bool>(map, map_renderer), dist_(0, 1) {}
+
+	void Update() override {
+		MapUtilities<bool>::Update();
+
+		if (key_r_is_released_) {
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+				map_.Clear();
+				for (size_t i = 0; i < map_.GetHeight(); i++) {
+					for (size_t j = 0; j < map_.GetWidth(); j++) {
+						map_.Set(i, j, dist_(rd_));
+					}
+				}
+				key_r_is_released_ = false;
+			}
+		}
+		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+			key_r_is_released_ = true;
+		}
+	}
+
+private:
+	bool key_r_is_released_ = true;
+    random_device rd_;
+    uniform_int_distribution<size_t> dist_;
+
+};
 
 int main()
 {
     game_of_life::Map<bool> map(width, height);
-	game_of_life::MapController map_controller(map);
+	GameOfLifeMapController map_controller(map);
 
     boost::asio::io_context io_context;
 
@@ -84,12 +146,11 @@ int main()
     sf::Clock fps_clock;
 	
 	game_of_life::Player player(map);
-    
+
+    GameOfLifeMapUtilities map_utilities(map, map_renderer);
+	
     bool game_paused = true;
-    bool key_g_is_released = true;
     bool key_p_is_released = true;
-    bool key_c_is_released = true;
-    bool key_r_is_released = true;
 
     while (window.isOpen())
     {
@@ -115,16 +176,6 @@ int main()
             boost::asio::write(s, boost::asio::buffer(player.GetProto().SerializeAsString()));
         }
 
-        if (key_g_is_released) {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-            	map_renderer.SetGridVisible(!map_renderer.GetGridVisible());
-                key_g_is_released = false;
-            }
-        }
-        if (!sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-            key_g_is_released = true;
-        }
-
         if (key_p_is_released) {
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
                 game_paused = !game_paused;
@@ -135,31 +186,7 @@ int main()
             key_p_is_released = true;
         }
 
-        if (key_c_is_released) {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
-                map.Clear();
-                key_c_is_released = false;
-            }
-        }
-        if (!sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
-            key_c_is_released = true;
-        }
-
-        if (key_r_is_released) {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-                map.Clear();
-                for (size_t i = 0; i < map.GetHeight(); i++) {
-                    for (size_t j = 0; j < map.GetWidth(); j++) {
-                    	map.Set(i, j, dist(rd));
-                    }
-                }
-                key_r_is_released = false;
-            }
-        }
-        if (!sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-            key_r_is_released = true;
-        }
-
+        map_utilities.Update();
         map_renderer.Update();
 
         sf::RectangleShape builder_rect(cell_size);

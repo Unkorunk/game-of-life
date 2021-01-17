@@ -11,41 +11,36 @@
 #include "MapUtilities.h"
 #include "Camera.h"
 #include "Player.h"
+#include "PlayerCollection.h"
 
 using boost::asio::ip::tcp;
 
 const size_t width = 100;
 const size_t height = 100;
 const float fps = 1.f/8.f;
-const sf::Color builder_color(255, 0, 0, 100);
-const sf::Color other_builder_color(0, 255, 0, 100);
 const char* default_port = "5000";
 const char* default_host = "localhost";
 
 using namespace std;
 
 std::string buff(1024,' ');
-std::vector<sf::Vector2i> other_players;
 
-void do_read(tcp::socket &socket)
-{
-    socket.async_read_some(boost::asio::buffer(buff),
-        [&](boost::system::error_code ec, std::size_t length)
-        {        	
-            if (!ec)
-            {
-                other_players.clear();
-                generated_files::World world;
-                world.ParseFromArray(buff.data(), length);
-                for (auto player : world.players()) {
-                    if (!player.is_player()) other_players.emplace_back(player.x(), player.y());
-                }
-                do_read(socket);
-            }
-            else {
-                exit(0);
-            }
-        });
+void do_read(tcp::socket& socket, cellular_automaton::PlayerCollection& player_collection) {
+	socket.async_read_some(
+		boost::asio::buffer(buff),
+		[&](boost::system::error_code ec, std::size_t length) {
+			if (!ec) {
+				generated_files::World world;
+				world.ParseFromArray(buff.data(), length);
+
+				player_collection.UpdateProto(world);
+				
+				do_read(socket, player_collection);
+			} else {
+				exit(0);
+			}
+		}
+	);
 }
 
 class GameOfLifeMapController final : cellular_automaton::MapController<bool> {
@@ -124,11 +119,13 @@ int main()
     tcp::resolver resolver(io_context);
     boost::asio::connect(s, resolver.resolve(default_host, default_port));
 
-    do_read(s);
+    cellular_automaton::PlayerCollection player_collection;
+	
+    do_read(s, player_collection);
     
     sf::RenderWindow window(sf::VideoMode::getFullscreenModes()[0], "Game Of Life");
 
-    cellular_automaton::MapRenderer<bool> map_renderer(window, map);
+    cellular_automaton::MapRenderer<bool> map_renderer(window, map, player_collection);
 	map_renderer.MapValueToExistence([](const bool& it) {
 		return it;
 	});
@@ -145,8 +142,12 @@ int main()
 
     sf::Clock clock;
     sf::Clock fps_clock;
-	
-	cellular_automaton::Player player(map);
+    
+    cellular_automaton::Player player(map, true);
+	player.SetListener([&s](const cellular_automaton::Player& player) {
+        boost::asio::write(s, boost::asio::buffer(player.GetProto().SerializeAsString()));
+	});
+	player_collection.Add(player);
 
     GameOfLifeMapUtilities map_utilities(map, map_renderer);
 	
@@ -168,14 +169,7 @@ int main()
         }
 
     	camera.Update(dt);
-
-        sf::Vector2i old_builder_position = player.GetPosition();
-
-        player.Update();
-
-        if (old_builder_position != player.GetPosition()) {
-            boost::asio::write(s, boost::asio::buffer(player.GetProto().SerializeAsString()));
-        }
+    	player_collection.Update();
 
         if (key_p_is_released) {
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
@@ -189,21 +183,6 @@ int main()
 
         map_utilities.Update();
         map_renderer.Update();
-
-        sf::RectangleShape builder_rect(cell_size);
-        builder_rect.setFillColor(builder_color);
-        sf::RectangleShape other_builder_rect(cell_size);
-        other_builder_rect.setFillColor(other_builder_color);
-    	
-        for (auto builder_position : other_players) {
-            other_builder_rect.setPosition(builder_position.x * (cell_size.x + cell_offset.x) + cell_offset.x,
-                builder_position.y * (cell_size.y + cell_offset.y) + cell_offset.y);
-            window.draw(other_builder_rect);
-        }
-    	
-        builder_rect.setPosition(player.GetX() * (cell_size.x + cell_offset.x) + cell_offset.x,
-            player.GetY() * (cell_size.y + cell_offset.y) + cell_offset.y);
-        window.draw(builder_rect);
 
         if (fps_clock.getElapsedTime().asSeconds() < fps) {
             window.display();

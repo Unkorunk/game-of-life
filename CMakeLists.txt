@@ -11,6 +11,7 @@ target_link_libraries(generated-files ${CONAN_LIBS})
 
 add_library(cellular-automaton STATIC
     Player.cpp Player.h
+    PlayerCollection.cpp PlayerCollection.h
     Camera.cpp Camera.h
     Map.h
     MapController.h

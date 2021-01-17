@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "Map.h"
+#include "PlayerCollection.h"
 
 namespace cellular_automaton {
 	template <typename T>
@@ -13,8 +14,11 @@ namespace cellular_automaton {
 		static const sf::Vector2f kCellSize;
 		static const sf::Color kBackgroundColor;
 		static const sf::Color kGridColor;
+		static const sf::Color kBuilderColor;
+		static const sf::Color kOtherBuilderColor;
 
-		MapRenderer(sf::RenderWindow& window, const Map<T>& map) : window_(window), map_(map), grid_visible_(true) { }
+		MapRenderer(sf::RenderWindow& window, const Map<T>& map, const PlayerCollection& player_collection)
+			: window_(window), map_(map), grid_visible_(true), player_collection_(player_collection) { }
 
 		void Update() const {
 			window_.clear(kBackgroundColor);
@@ -46,6 +50,19 @@ namespace cellular_automaton {
 					}
 				}
 			}
+
+			sf::RectangleShape builder_rect(kCellSize);
+			for (const Player& player : player_collection_.GetPlayers()) {
+				if (player.IsPlayer()) {
+					builder_rect.setFillColor(kBuilderColor);
+				} else {
+					builder_rect.setFillColor(kOtherBuilderColor);
+				}
+				
+				builder_rect.setPosition(player.GetX() * (kCellSize.x + kCellOffset.x) + kCellOffset.x,
+					player.GetY() * (kCellSize.y + kCellOffset.y) + kCellOffset.y);
+				window_.draw(builder_rect);
+			}
 		}
 
 		void SetGridVisible(bool visible) {
@@ -67,6 +84,7 @@ namespace cellular_automaton {
 	private:
 		sf::RenderWindow& window_;
 		const Map<T>& map_;
+		const PlayerCollection& player_collection_;
 
 		bool grid_visible_;
 
@@ -85,4 +103,10 @@ namespace cellular_automaton {
 
 	template <typename T>
 	const sf::Color MapRenderer<T>::kGridColor(150, 150, 150);
+
+	template <typename T>
+	const sf::Color MapRenderer<T>::kBuilderColor(255, 0, 0, 100);
+
+	template <typename T>
+	const sf::Color MapRenderer<T>::kOtherBuilderColor(0, 255, 0, 100);
 }
